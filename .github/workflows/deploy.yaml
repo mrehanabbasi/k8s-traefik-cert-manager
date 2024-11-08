@@ -123,9 +123,16 @@ jobs:
         with:
           version: latest
 
+      - name: Add helm repos
+        run: |
+          helm repo add --force-update traefik https://helm.traefik.io/traefik
+          helm repo add --force-update emberstack https://emberstack.github.io/helm-charts
+          helm repo add --force-update jetstack https://charts.jetstack.io
+          helm repo update
+
       - name: Deploy Traefik
         run: |
-          helm install --namespace=traefik --create-namespace traefik traefik/traefik -f traefik/values.yaml
+          helm upgrade --install --namespace=traefik --create-namespace traefik traefik/traefik -f traefik/values.yaml
 
       - name: Deploy Traefik dashboard
         uses: Azure/k8s-deploy@v5
@@ -143,14 +150,9 @@ jobs:
             traefik/middleware.yaml
             ingress.yaml
 
-      - name: Add reflector repo
-        run: |
-          helm repo add --force-update emberstack https://emberstack.github.io/helm-charts
-          helm repo update
-
       - name: Deploy cert-manager
         run: |
-          cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --values cert-manager/values.yaml --version v1.16.1
+          helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --values cert-manager/values.yaml --version v1.16.1
 
       - name: Deploy issuers
         uses: Azure/k8s-deploy@v5
