@@ -123,32 +123,9 @@ jobs:
         with:
           version: latest
 
-      # - name: Deploy Traefik helm chart
-      #   uses: azure/k8s-bake@v3
-      #   with:
-      #     renderEngine: 'helm'
-      #     helmChart: 'traefik/traefik'
-      #     overrideFiles: './traefik/values.yaml'
-      #     overrides: |
-      #         replicas:1
-      #     helm-version: 'latest'
-
       - name: Deploy Traefik
-        uses: deliverybot/helm@v1
-        with:
-          release: 'traefik'
-          namespace: 'traefik'
-          chart: 'traefik/traefik'
-          token: '${{ github.token }}'
-          helm: helm3
-          repo: 'https://helm.traefik.io/traefik'
-          # repo-alias: traefik
-          value-files: >-
-            [
-              "./traefik/values.yaml"
-            ]
-        env:
-          KUBECONFIG_FILE: '${{ secrets.KUBECONFIG }}'
+        run: |
+          helm install --namespace=traefik --create-namespace traefik traefik/traefik -f traefik/values.yaml
 
       - name: Deploy Traefik dashboard
         uses: Azure/k8s-deploy@v5
@@ -172,21 +149,8 @@ jobs:
           helm repo update
 
       - name: Deploy cert-manager
-        uses: deliverybot/helm@v1
-        with:
-          release: 'jetstack'
-          namespace: 'cert-manager'
-          chart: 'jetstack/cert-manager'
-          token: '${{ github.token }}'
-          helm: helm3
-          repo: 'https://charts.jetstack.io'
-          # repo-alias: cert-manager
-          value-files: >-
-            [
-              "./cert-manager/values.yaml"
-            ]
-        env:
-          KUBECONFIG_FILE: '${{ secrets.KUBECONFIG }}'
+        run: |
+          cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --values cert-manager/values.yaml --version v1.16.1
 
       - name: Deploy issuers
         uses: Azure/k8s-deploy@v5
