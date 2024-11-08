@@ -164,7 +164,7 @@ jobs:
           name: ${{ secrets.CLUSTER_NAME }}
           action: deploy
           strategy: basic
-          namespace: cert-manager
+          namespace: traefik
 
           # private-cluster: true
           manifests: |
