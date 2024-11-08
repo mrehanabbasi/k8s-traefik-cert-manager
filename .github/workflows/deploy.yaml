@@ -24,7 +24,7 @@ jobs:
       - name: Replace Traefik password
         uses: richardrigutins/replace-in-files@v2
         with:
-          files: '*.yaml'
+          files: '**/*.yaml'
           search-text: 'HASHED_USERNAME_PASSWORD'
           replacement-text: ${{ secrets.TRAEFIK_HASHED_ENCODED_CREDS }}
           exclude: '*.sh'
@@ -34,7 +34,7 @@ jobs:
       - name: Replace base domain
         uses: richardrigutins/replace-in-files@v2
         with:
-          files: '*.yaml'
+          files: '**/*.yaml'
           search-text: 'domain.tld'
           replacement-text: ${{ secrets.BASE_DOMAIN }}
           exclude: '*.sh'
@@ -44,7 +44,7 @@ jobs:
       - name: Replace TLS secret name prod
         uses: richardrigutins/replace-in-files@v2
         with:
-          files: '*.yaml'
+          files: '**/*.yaml'
           search-text: 'TLS_SECRET_NAME'
           replacement-text: ${{ secrets.TLS_PROD_SECRET_NAME }}
           exclude: '*.sh'
@@ -54,7 +54,7 @@ jobs:
       - name: Replace TLS secret name staging
         uses: richardrigutins/replace-in-files@v2
         with:
-          files: '*.yaml'
+          files: '**/*.yaml'
           search-text: 'TLS_STAGING_SECRET_NAME'
           replacement-text: ${{ secrets.TLS_STAGING_SECRET_NAME }}
           exclude: '*.sh'
@@ -64,7 +64,7 @@ jobs:
       - name: Replace email
         uses: richardrigutins/replace-in-files@v2
         with:
-          files: '*.yaml'
+          files: '**/*.yaml'
           search-text: 'CF_EMAIL'
           replacement-text: ${{ secrets.EMAIL }}
           exclude: '*.sh'
@@ -74,7 +74,7 @@ jobs:
       - name: Replace production certificate name
         uses: richardrigutins/replace-in-files@v2
         with:
-          files: '*.yaml'
+          files: '**/*.yaml'
           search-text: 'CERTIFICATE_NAME_PROD'
           replacement-text: ${{ secrets.CERTIFICATE_NAME_PROD }}
           exclude: '*.sh'
@@ -84,7 +84,7 @@ jobs:
       - name: Replace staging certificate name
         uses: richardrigutins/replace-in-files@v2
         with:
-          files: '*.yaml'
+          files: '**/*.yaml'
           search-text: 'CERTIFICATE_NAME_STAGING'
           replacement-text: ${{ secrets.CERTIFICATE_NAME_STAGING }}
           exclude: '*.sh'
