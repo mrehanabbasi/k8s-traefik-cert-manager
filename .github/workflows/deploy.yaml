@@ -145,10 +145,10 @@ jobs:
 
           # private-cluster: true
           manifests: |
-            traefik/secret-dashboard.yaml
-            traefik/default-headers.yaml
-            traefik/middleware.yaml
-            ingress.yaml
+            traefik/dashboard/secret-dashboard.yaml
+            traefik/dashboard/default-headers.yaml
+            traefik/dashboard/middleware.yaml
+            traefik/dashboard/ingress.yaml
 
       - name: Deploy cert-manager
         run: |
