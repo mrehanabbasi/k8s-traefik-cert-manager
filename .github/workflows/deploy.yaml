@@ -1,0 +1,223 @@
+name: Deply to k8s cluster
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install httpd-tools for htpasswd
+        run: |
+          sudo apt update
+          sudo apt install -y apache2-utils
+
+      - name: Hash Password with htpasswd
+        id: hash_password
+        run: |
+          export HASHED_PASSWORD=$(htpasswd -nbBC 10 "${{ secrets.TRAEFIK_USERNAME }}" "${{ secrets.TRAEFIK_PASSWORD }}" | sed 's/^\$2y\$/\$2a\$/')
+          echo "HASHED_PASSWORD=$HASHED_PASSWORD" >> $GITHUB_ENV
+
+      - name: Base64 Encode Username and Hashed Password
+        id: encode
+        run: |
+          export ENCODED_SECRET=$(echo -n "$HASHED_PASSWORD" | base64)
+          echo "ENCODED_SECRET=$ENCODED_SECRET" >> $GITHUB_ENV
+
+      - name: Replace Traefik password
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: '*.yaml'
+          search-text: 'HASHED_USERNAME_PASSWORD'
+          replacement-text: $ENCODED_SECRET
+          exclude: '*.sh'
+          encoding: 'utf8'
+          max-parallelism: 10
+
+      - name: Replace base domain
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: '*.yaml'
+          search-text: 'domain.tld'
+          replacement-text: ${{ secrets.BASE_DOMAIN }}
+          exclude: '*.sh'
+          encoding: 'utf8'
+          max-parallelism: 10
+
+      - name: Replace TLS secret name prod
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: '*.yaml'
+          search-text: 'TLS_SECRET_NAME'
+          replacement-text: ${{ secrets.TLS_PROD_SECRET_NAME }}
+          exclude: '*.sh'
+          encoding: 'utf8'
+          max-parallelism: 10
+
+      - name: Replace TLS secret name staging
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: '*.yaml'
+          search-text: 'TLS_STAGING_SECRET_NAME'
+          replacement-text: ${{ secrets.TLS_STAGING_SECRET_NAME }}
+          exclude: '*.sh'
+          encoding: 'utf8'
+          max-parallelism: 10
+
+      - name: Replace email
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: '*.yaml'
+          search-text: 'CF_EMAIL'
+          replacement-text: ${{ secrets.EMAIL }}
+          exclude: '*.sh'
+          encoding: 'utf8'
+          max-parallelism: 10
+
+      - name: Replace production certificate name
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: '*.yaml'
+          search-text: 'CERTIFICATE_NAME_PROD'
+          replacement-text: ${{ secrets.CERTIFICATE_NAME_PROD }}
+          exclude: '*.sh'
+          encoding: 'utf8'
+          max-parallelism: 10
+          max-parallelism: 10
+
+      - name: Replace staging certificate name
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: '*.yaml'
+          search-text: 'CERTIFICATE_NAME_STAGING'
+          replacement-text: ${{ secrets.CERTIFICATE_NAME_STAGING }}
+          exclude: '*.sh'
+          encoding: 'utf8'
+          max-parallelism: 10
+
+      - uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Configure kubeconfig
+        uses: azure/k8s-set-context@v1
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+
+      - name: Set up helm
+        uses: azure/setup-helm@v4.2.0
+        with:
+          version: latest
+
+      # - name: Deploy Traefik helm chart
+      #   uses: azure/k8s-bake@v3
+      #   with:
+      #     renderEngine: 'helm'
+      #     helmChart: 'traefik/traefik'
+      #     overrideFiles: './traefik/values.yaml'
+      #     overrides: |
+      #         replicas:1
+      #     helm-version: 'latest'
+
+      - name: Deploy Traefik
+        uses: deliverybot/helm@v1
+        with:
+          release: 'traefik'
+          namespace: 'traefik'
+          chart: 'traefik/traefik'
+          token: '${{ github.token }}'
+          helm: helm3
+          repo: 'https://helm.traefik.io/traefik'
+          # repo-alias: traefik
+          value-files: >-
+            [
+              "./traefik/values.yaml"
+            ]
+        env:
+          KUBECONFIG_FILE: '${{ secrets.KUBECONFIG }}'
+
+      - name: Deploy Traefik dashboard
+        uses: Azure/k8s-deploy@v5
+        with:
+          # resource-group: yourResourceGroup
+          name: ${{ secrets.CLUSTER_NAME }}
+          action: deploy
+          strategy: basic
+          namespace: traefik
+
+          # private-cluster: true
+          manifests: |
+            traefik/secret-dashboard.yaml
+            traefik/default-headers.yaml
+            traefik/middleware.yaml
+            ingress.yaml
+
+      - name: Add reflector repo
+        run: |
+          helm repo add --force-update emberstack https://emberstack.github.io/helm-charts
+          helm repo update
+
+      - name: Deploy cert-manager
+        uses: deliverybot/helm@v1
+        with:
+          release: 'jetstack'
+          namespace: 'cert-manager'
+          chart: 'jetstack/cert-manager'
+          token: '${{ github.token }}'
+          helm: helm3
+          repo: 'https://charts.jetstack.io'
+          # repo-alias: cert-manager
+          value-files: >-
+            [
+              "./cert-manager/values.yaml"
+            ]
+        env:
+          KUBECONFIG_FILE: '${{ secrets.KUBECONFIG }}'
+
+      - name: Deploy issuers
+        uses: Azure/k8s-deploy@v5
+        with:
+          # resource-group: yourResourceGroup
+          name: ${{ secrets.CLUSTER_NAME }}
+          action: deploy
+          strategy: basic
+          namespace: cert-manager
+
+          # private-cluster: true
+          manifests: |
+            cert-manager/issuers/secret-cf-token.yaml
+            cert-manager/issuers/letsencrypt-staging.yaml
+            cert-manager/issuers/letsencrypt-production.yaml
+
+      - name: Install reflector
+        run: |
+          helm upgrade --install reflector emberstack/reflector
+
+      - name: Deploy certificates
+        uses: Azure/k8s-deploy@v5
+        with:
+          # resource-group: yourResourceGroup
+          name: ${{ secrets.CLUSTER_NAME }}
+          action: deploy
+          strategy: basic
+          namespace: cert-manager
+
+          # private-cluster: true
+          manifests: |
+            cert-manager/certificates/staging/local-example-com.yaml
+            cert-manager/certificates/production/local-example-com.yaml
