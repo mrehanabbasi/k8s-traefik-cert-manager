@@ -21,29 +21,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install httpd-tools for htpasswd
-        run: |
-          sudo apt update
-          sudo apt install -y apache2-utils
-
-      - name: Hash Password with htpasswd
-        id: hash_password
-        run: |
-          export HASHED_PASSWORD=$(htpasswd -nbBC 10 "${{ secrets.TRAEFIK_USERNAME }}" "${{ secrets.TRAEFIK_PASSWORD }}" | sed 's/^\$2y\$/\$2a\$/')
-          echo "HASHED_PASSWORD=$HASHED_PASSWORD" >> $GITHUB_ENV
-
-      - name: Base64 Encode Username and Hashed Password
-        id: encode
-        run: |
-          export ENCODED_SECRET=$(echo -n "$HASHED_PASSWORD" | base64)
-          echo "ENCODED_SECRET=$ENCODED_SECRET" >> $GITHUB_ENV
-
       - name: Replace Traefik password
         uses: richardrigutins/replace-in-files@v2
         with:
           files: '*.yaml'
           search-text: 'HASHED_USERNAME_PASSWORD'
-          replacement-text: $ENCODED_SECRET
+          replacement-text: ${{ secrets.TRAEFIK_HASHED_ENCODED_CREDS }}
           exclude: '*.sh'
           encoding: 'utf8'
           max-parallelism: 10
