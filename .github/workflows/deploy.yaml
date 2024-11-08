@@ -97,7 +97,6 @@ jobs:
           exclude: '*.sh'
           encoding: 'utf8'
           max-parallelism: 10
-          max-parallelism: 10
 
       - name: Replace staging certificate name
         uses: richardrigutins/replace-in-files@v2
