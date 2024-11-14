@@ -25,6 +25,9 @@ ports:
       advertisedPort: 4443
     tls:
       enabled: true
+    proxyProtocol:
+      trustedIPs:
+        - '0.0.0.0/0'
 
 ingressRoute:
   dashboard:
@@ -47,9 +50,15 @@ rbac:
 service:
   enabled: true
   type: LoadBalancer
-  annotations: {}
+  annotations:
+    load-balancer.hetzner.cloud/location: hel1
+    load-balancer.hetzner.cloud/use-private-ip: 'true'
+    load-balancer.hetzner.cloud/hostname: k8s.domain.tld
+    load-balancer.hetzner.cloud/http-redirect-https: 'false'
+    load-balancer.hetzner.cloud/name: k3s-lb
+    load-balancer.hetzner.cloud/uses-proxyprotocol: 'true'
   labels: {}
-  spec:
-    loadBalancerIP: 192.168.30.80 # this should be an IP in the MetalLB range
+  # spec:
+  #   loadBalancerIP: 192.168.30.80 # this should be an IP in the MetalLB range
   loadBalancerSourceRanges: []
   externalIPs: []
