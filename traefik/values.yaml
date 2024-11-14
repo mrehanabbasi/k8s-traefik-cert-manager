@@ -53,7 +53,7 @@ service:
   annotations:
     load-balancer.hetzner.cloud/location: hel1
     load-balancer.hetzner.cloud/use-private-ip: 'true'
-    load-balancer.hetzner.cloud/hostname: k8s.domain.tld
+    load-balancer.hetzner.cloud/hostname: lb.k8s.domain.tld
     load-balancer.hetzner.cloud/http-redirect-https: 'false'
     load-balancer.hetzner.cloud/name: k3s-lb
     load-balancer.hetzner.cloud/uses-proxyprotocol: 'true'
