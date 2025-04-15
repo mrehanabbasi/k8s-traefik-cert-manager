@@ -1,4 +1,4 @@
-name: Deply to k8s cluster
+name: Deploy to k8s cluster
 
 on:
   push:
